@@ -6,6 +6,15 @@ import pool from '../db.js';
  * @throws {Error} if the coupon doesn't exist
  */
 export async function getCoupon(code) {
-  // TODO: implement.
-  throw new Error('not implemented');
+  const result = await pool.query('SELECT * FROM coupons WHERE code = $1', [code]);
+  if (result.rows.length === 0) {
+    throw new Error(`Coupon not found: ${code}`);
+  }
+  const row = result.rows[0];
+  return {
+    code: row.code,
+    timesUsed: row.times_used,
+    usageLimit: row.usage_limit,
+    expiresAt: row.expires_at.toISOString()
+  };
 }

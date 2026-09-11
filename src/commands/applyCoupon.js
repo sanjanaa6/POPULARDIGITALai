@@ -13,6 +13,7 @@ import pool from '../db.js';
  *   at its usage limit (global or per-user)
  */
 export async function applyCoupon(cartTotal, code, userId = null) {
+  const cartTotalNum = Number(cartTotal);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -26,7 +27,7 @@ export async function applyCoupon(cartTotal, code, userId = null) {
     if (new Date() > coupon.expires_at) {
       throw new Error(`Coupon expired: ${code}`);
     }
-    if (cartTotal < Number(coupon.min_spend)) {
+    if (cartTotalNum < Number(coupon.min_spend)) {
       throw new Error(`Cart total below minimum spend of ${coupon.min_spend}`);
     }
     if (coupon.times_used >= coupon.usage_limit) {
@@ -51,7 +52,7 @@ export async function applyCoupon(cartTotal, code, userId = null) {
     const value = Number(coupon.discount_value);
     
     if (coupon.discount_type === 'percent') {
-      discountAmount = cartTotal * (value / 100);
+      discountAmount = cartTotalNum * (value / 100);
       if (coupon.max_discount_amount !== null) {
         discountAmount = Math.min(discountAmount, Number(coupon.max_discount_amount));
       }
@@ -59,9 +60,9 @@ export async function applyCoupon(cartTotal, code, userId = null) {
       discountAmount = value;
     }
 
-    let finalTotal = cartTotal - discountAmount;
+    let finalTotal = cartTotalNum - discountAmount;
     if (finalTotal < 0) {
-      discountAmount = cartTotal;
+      discountAmount = cartTotalNum;
       finalTotal = 0;
     }
 
@@ -74,7 +75,7 @@ export async function applyCoupon(cartTotal, code, userId = null) {
       INSERT INTO orders (cart_total, coupon_code, discount_amount, final_total, user_id)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id
-    `, [cartTotal, code, discountAmount, finalTotal, userId]);
+    `, [cartTotalNum, code, discountAmount, finalTotal, userId]);
     const orderId = orderRes.rows[0].id;
 
     await client.query(`

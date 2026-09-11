@@ -15,6 +15,7 @@ import pool from '../db.js';
  *   discount_type, or any coupon fails validation
  */
 export async function applyCoupons(cartTotal, codes, userId = null) {
+  const cartTotalNum = Number(cartTotal);
   if (!Array.isArray(codes) || codes.length === 0 || codes.length > 2) {
     throw new Error('Must provide 1 or 2 coupon codes');
   }
@@ -27,7 +28,7 @@ export async function applyCoupons(cartTotal, codes, userId = null) {
     await client.query('BEGIN');
 
     const sortedCodes = [...codes].sort();
-    const couponsRes = await client.query('SELECT * FROM coupons WHERE code = ANY($1) FOR UPDATE', [sortedCodes]);
+    const couponsRes = await client.query('SELECT * FROM coupons WHERE code = ANY($1) ORDER BY code FOR UPDATE', [sortedCodes]);
     
     if (couponsRes.rows.length !== codes.length) {
       throw new Error(`One or more coupons not found`);
@@ -46,7 +47,7 @@ export async function applyCoupons(cartTotal, codes, userId = null) {
       if (now > coupon.expires_at) {
         throw new Error(`Coupon expired: ${coupon.code}`);
       }
-      if (cartTotal < Number(coupon.min_spend)) {
+      if (cartTotalNum < Number(coupon.min_spend)) {
         throw new Error(`Cart total below minimum spend of ${coupon.min_spend} for coupon: ${coupon.code}`);
       }
       if (coupon.times_used >= coupon.usage_limit) {
@@ -72,7 +73,7 @@ export async function applyCoupons(cartTotal, codes, userId = null) {
     const percentCoupon = coupons.find(c => c.discount_type === 'percent');
     const flatCoupon = coupons.find(c => c.discount_type === 'flat');
 
-    let currentTotal = cartTotal;
+    let currentTotal = cartTotalNum;
     let totalDiscountAmount = 0;
     const appliedDiscounts = [];
 
@@ -124,7 +125,7 @@ export async function applyCoupons(cartTotal, codes, userId = null) {
       INSERT INTO orders (cart_total, coupon_code, discount_amount, final_total, user_id)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id
-    `, [cartTotal, firstCode, totalDiscountAmount, finalTotal, userId]);
+    `, [cartTotalNum, firstCode, totalDiscountAmount, finalTotal, userId]);
     const orderId = orderRes.rows[0].id;
 
     for (const applied of appliedDiscounts) {

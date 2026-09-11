@@ -13,8 +13,13 @@ export async function getCoupon(code) {
   const row = result.rows[0];
   return {
     code: row.code,
-    timesUsed: row.times_used,
+    discountType: row.discount_type,
+    discountValue: Number(row.discount_value),
+    minSpend: Number(row.min_spend),
+    expiresAt: row.expires_at.toISOString(),
     usageLimit: row.usage_limit,
-    expiresAt: row.expires_at.toISOString()
+    maxDiscountAmount: row.max_discount_amount !== null ? Number(row.max_discount_amount) : null,
+    usageLimitPerUser: row.usage_limit_per_user,
+    timesUsed: row.times_used
   };
 }

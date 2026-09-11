@@ -33,3 +33,8 @@ under `test/` (`npm test` will pick them up) is encouraged but optional.
 Implement the logic in `src/commands/*.js` — one function per file, each
 stubbed with a `not implemented` error and a doc comment describing its
 contract. `src/cli.js` and `src/db.js` are wired up already.
+
+## Assumptions & Notes
+- **Bonus Tasks Attempted**: Bonus 1 (Capped percent discount), Bonus 2 (Per-user usage limit), and Bonus 3 (Stackable coupons) are fully implemented.
+- **Stacking Min Spend**: When stacking coupons (Bonus 3), the minimum spend requirement for *both* coupons is evaluated against the *original cart total*, not the running subtotal after the first coupon is applied.
+- **Locking & Deadlocks**: The implementation uses `SELECT ... FOR UPDATE` (with deterministic `ORDER BY code` where applicable) to prevent Write Skew on the `usage_limit_per_user` checks and to prevent deadlocks under high concurrency.

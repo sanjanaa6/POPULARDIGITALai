@@ -33,8 +33,11 @@ export async function applyCoupon(cartTotal, code, userId = null) {
     if (coupon.times_used >= coupon.usage_limit) {
       throw new Error(`Coupon usage limit reached: ${code}`);
     }
+    if (coupon.usage_limit_per_user !== null && !userId) {
+      throw new Error(`User ID is required for coupon: ${code}`);
+    }
 
-    if (userId && coupon.usage_limit_per_user !== null) {
+    if (coupon.usage_limit_per_user !== null) {
       const userRes = await client.query(`
         SELECT COUNT(*) as count 
         FROM order_coupons oc
